@@ -37,20 +37,30 @@ mod tests {
     use super::*;
 
     #[test]
+    fn ts_same_start_end() {
+        let ts = timestamp("2023-02-22 00:00", Some("2023-02-22 00:00"), "15m", 499).unwrap();
+        assert_eq!(ts.len(), 1);
+        let ts: Vec<_> = ts.windows(2).collect();
+        assert_eq!(ts.len(), 0);
+    }
+    #[test]
     fn ts_under_limit() {
         let ts = timestamp("2023-02-22 00:00", Some("2023-02-27 04:44"), "15m", 499).unwrap();
+        assert_eq!(ts.len(), 2);
         let ts: Vec<_> = ts.windows(2).collect();
         assert_eq!(ts.len(), 1);
     }
     #[test]
     fn ts_as_same_as_limit() {
         let ts = timestamp("2023-02-22 00:00", Some("2023-02-27 04:45"), "15m", 499).unwrap();
+        assert_eq!(ts.len(), 2);
         let ts: Vec<_> = ts.windows(2).collect();
         assert_eq!(ts.len(), 1);
     }
     #[test]
     fn ts_exceed_limit() {
         let ts = timestamp("2023-02-22 00:00", Some("2023-02-27 04:46"), "15m", 499).unwrap();
+        assert_eq!(ts.len(), 3);
         let ts: Vec<_> = ts.windows(2).collect();
         assert_eq!(ts.len(), 2);
     }
