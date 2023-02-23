@@ -1,8 +1,11 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use polars_ad_hoc::chrono_range::timestamp;
+use polars_ad_hoc::chrono_range::TimestampBuilder;
 
 fn gen() {
-    let ts = timestamp("2020-01-01 00:00", Some("2023-03-01 00:00"), "15m", 499).unwrap();
+    let ts = TimestampBuilder::new("2020-01-01 00:00", Some("2023-03-01 00:00"), "15m")
+        .unwrap()
+        .build()
+        .unwrap();
     let _ts: Vec<_> = ts.windows(2).collect();
 }
 
