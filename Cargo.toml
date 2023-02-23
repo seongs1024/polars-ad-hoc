@@ -13,7 +13,12 @@ categories = ["data-structure"]
 keywords = ["polars", "dataframe"]
 
 [dependencies]
+async-trait = "0.1.64"
+binance-rs-async = { version = "1.3.1", default-features = false, features = ["futures_api", "native-tls"] }
 chrono = { version = "0.4.23", default-features = false, features = ["clock"] }
+polars = { version = "0.27.2", default-features = false, features = ["json", "fmt", "lazy"] }
+serde_json = { version = "1.0.93", default-features = false }
+tokio = { version = "1.25.0", default-features = false, features = ["rt"] }
 
 [dev-dependencies]
 criterion = { version = "0.4.0", default-features = false }

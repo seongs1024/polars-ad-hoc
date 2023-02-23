@@ -1,20 +1,27 @@
 use chrono::{Duration, NaiveDateTime, ParseResult, Utc};
 
+use binance::{api::*, futures::market::*, futures::rest_model::*};
+use polars::prelude::*;
+use std::{io::Cursor, sync::Arc};
+use tokio::task::JoinSet;
+
 pub struct TimestampBuilder {
     ts_fmt: String,
     start: i64,
     end: i64,
     step: i64,
+    interval: String,
     limit: i64,
 }
 
 impl Default for TimestampBuilder {
     fn default() -> Self {
         Self {
-            ts_fmt: "%Y-%m-%d %H:%M".to_owned(),
+            ts_fmt: "%Y-%m-%d %H:%M".into(),
             start: 0,
             end: 0,
             step: 900000,
+            interval: "15m".into(),
             limit: 499,
         }
     }
@@ -35,6 +42,7 @@ impl TimestampBuilder {
                 .timestamp_millis(),
             None => Utc::now().naive_utc().timestamp_millis(),
         };
+        builder.interval = step.as_ref().into();
         builder.step = match step.as_ref() {
             "15m" => Duration::minutes(15).num_milliseconds(),
             _ => todo!(),
@@ -52,6 +60,61 @@ impl TimestampBuilder {
             .collect();
         list.push(self.end);
         Some(list)
+    }
+
+    async fn request<S1, S2>(
+        client: Arc<FuturesMarket>,
+        symbol: S1,
+        start: u64,
+        end: u64,
+        interval: S2,
+        limit: u16,
+    ) -> Result<Vec<KlineSummary>, Box<dyn std::error::Error>>
+    where
+        S1: Into<String>,
+        S2: Into<String>,
+    {
+        let klines = client
+            .get_klines(symbol, interval, limit, Some(start), Some(end))
+            .await?;
+        let KlineSummaries::AllKlineSummaries(klines) = klines;
+        Ok(klines)
+    }
+
+    pub async fn dataframe<S: Into<String> + Copy>(&self, symbol: S) -> PolarsResult<DataFrame> {
+        let ts = match self.build() {
+            Some(ts) if ts.len() > 1 => ts,
+            _ => return Err(PolarsError::NoData("Empty timestamp list".into())),
+        };
+        let market: Arc<FuturesMarket> = Arc::new(Binance::new(None, None));
+        let mut task_set = JoinSet::new();
+        ts.windows(2).for_each(|ts| {
+            let market = market.clone();
+            let symbol = symbol.into();
+            let start = ts[0] as u64;
+            let end = ts[1] as u64;
+            let interval = self.interval.clone();
+            let limit = self.limit as u16;
+            task_set
+                .spawn(async move { Self::request(market, symbol, start, end, interval, limit) });
+        });
+        let mut candlesticks = Vec::with_capacity(task_set.len());
+        while let Some(task) = task_set.join_next().await {
+            let klines = task.unwrap().await.unwrap();
+            candlesticks.push(klines);
+        }
+        let candlesticks: Vec<KlineSummary> = candlesticks.into_iter().flatten().collect();
+        let json = serde_json::to_string(&candlesticks).unwrap();
+        let cursor = Cursor::new(json);
+        let df = JsonReader::new(cursor)
+            .finish()?
+            .lazy()
+            .select([
+                col("openTime").cast(DataType::Datetime(TimeUnit::Milliseconds, None)),
+                all().exclude(["openTime"]),
+            ])
+            .collect()?;
+        Ok(df)
     }
 }
 
@@ -126,6 +189,38 @@ mod tests {
         let ts =
             TimestampBuilder::new("2023-03-01 01:00", Some("2023-03-01 00:00"), "15m")?.build();
         assert_eq!(ts, None);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn ts_df_short() -> Result<(), Box<dyn std::error::Error>> {
+        let df = TimestampBuilder::new("2023-02-21 00:00", Some("2023-02-21 23:59"), "15m")
+            .unwrap()
+            .dataframe("btcusdt")
+            .await?;
+        println!("{}", df);
+        assert_eq!(df.height(), 96);
+        Ok(())
+    }
+    #[tokio::test]
+    async fn ts_df_timestamp_bound() -> Result<(), Box<dyn std::error::Error>> {
+        let df = TimestampBuilder::new("2023-02-21 00:00", Some("2023-02-22 00:00"), "15m")
+            .unwrap()
+            .dataframe("btcusdt")
+            .await?;
+        println!("{}", df);
+        assert_eq!(df.height(), 97);
+        Ok(())
+    }
+    #[ignore]
+    #[tokio::test]
+    async fn ts_df_long() -> Result<(), Box<dyn std::error::Error>> {
+        let df = TimestampBuilder::new("2020-01-01 00:00", Some("2023-02-22 23:59"), "15m")
+            .unwrap()
+            .dataframe("btcusdt")
+            .await?;
+        println!("{}", df);
+        assert_eq!(df.height(), 110304);
         Ok(())
     }
 }
