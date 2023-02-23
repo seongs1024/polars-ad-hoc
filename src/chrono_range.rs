@@ -19,6 +19,9 @@ where
         Some(end) => NaiveDateTime::parse_from_str(end.as_ref(), ts_fmt)?,
         None => Utc::now().naive_utc(),
     };
+    if start > end {
+        return Ok(Vec::new());
+    }
     let step = match step.as_ref() {
         "15m" => Duration::minutes(15),
         _ => todo!(),
@@ -80,5 +83,10 @@ mod tests {
         assert_eq!(ts.len(), 224);
         let ts: Vec<_> = ts.windows(2).collect();
         assert_eq!(ts.len(), 223);
+    }
+    #[test]
+    fn ts_start_later_than_end() {
+        let ts = timestamp("2023-03-01 01:00", Some("2023-03-01 00:00"), "15m", 499).unwrap();
+        assert_eq!(ts.len(), 0);
     }
 }
