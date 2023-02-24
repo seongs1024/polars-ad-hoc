@@ -2,7 +2,7 @@ use chrono::{Duration, NaiveDateTime, ParseResult, Utc};
 
 use binance::{api::*, futures::market::*, futures::rest_model::*};
 use polars::prelude::*;
-use std::{io::Cursor, sync::Arc};
+use std::{error::Error, io::Cursor, sync::Arc};
 use tokio::task::JoinSet;
 
 pub struct TimestampBuilder {
@@ -81,10 +81,13 @@ impl TimestampBuilder {
         Ok(klines)
     }
 
-    pub async fn dataframe<S: Into<String> + Copy>(&self, symbol: S) -> PolarsResult<DataFrame> {
+    pub async fn dataframe<S: Into<String> + Copy>(
+        &self,
+        symbol: S,
+    ) -> Result<DataFrame, Box<dyn Error>> {
         let ts = match self.build() {
             Some(ts) if ts.len() > 1 => ts,
-            _ => return Err(PolarsError::NoData("Empty timestamp list".into())),
+            _ => return Err(PolarsError::NoData("Empty timestamp list".into()).into()),
         };
         let market: Arc<FuturesMarket> = Arc::new(Binance::new(None, None));
         let mut task_set = JoinSet::new();
