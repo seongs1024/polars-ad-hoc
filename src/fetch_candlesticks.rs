@@ -8,10 +8,10 @@ use tokio::runtime::Runtime;
 
 pub trait FetchCandleSticks<S1, S2, S3, S4>
 where
-    S1: AsRef<str> + Copy,
-    S2: AsRef<str> + Copy,
-    S3: AsRef<str> + Copy,
-    S4: AsRef<str> + Copy,
+    S1: AsRef<str>,
+    S2: AsRef<str>,
+    S3: AsRef<str>,
+    S4: AsRef<str>,
 {
     type Output;
 
@@ -26,10 +26,10 @@ where
 
 impl<S1, S2, S3, S4> FetchCandleSticks<S1, S2, S3, S4> for DataFrame
 where
-    S1: AsRef<str> + Copy,
-    S2: AsRef<str> + Copy,
-    S3: AsRef<str> + Copy,
-    S4: AsRef<str> + Copy,
+    S1: AsRef<str>,
+    S2: AsRef<str>,
+    S3: AsRef<str>,
+    S4: AsRef<str>,
 {
     type Output = DataFrame;
 
@@ -41,11 +41,12 @@ where
         interval: S4,
     ) -> Result<Self::Output, Box<dyn Error>> {
         if self.is_empty() {
-            let ts_builder = TimestampBuilder::new(start.ok_or("no start time")?, end, interval)?;
+            let ts_builder =
+                TimestampBuilder::new(start.ok_or("no start time")?, end, interval.as_ref())?;
             let df = dataframe(
                 ts_builder.build().unwrap(),
                 symbol.as_ref(),
-                interval,
+                interval.as_ref(),
                 ts_builder.limit as u16,
             );
             return df;
@@ -59,11 +60,11 @@ where
             + Duration::minutes(15))
         .format("%Y-%m-%d %H:%M")
         .to_string();
-        let ts_builder = TimestampBuilder::new(start, end, interval)?;
+        let ts_builder = TimestampBuilder::new(start, end, interval.as_ref())?;
         let df = dataframe(
             ts_builder.build().unwrap(),
             symbol.as_ref(),
-            interval,
+            interval.as_ref(),
             ts_builder.limit as u16,
         )?;
         if df.is_empty() {
@@ -84,11 +85,17 @@ async fn request<S1, S2>(
     limit: u16,
 ) -> Result<Vec<KlineSummary>, Box<dyn std::error::Error>>
 where
-    S1: Into<String>,
-    S2: Into<String>,
+    S1: AsRef<str>,
+    S2: AsRef<str>,
 {
     let klines = client
-        .get_klines(symbol, interval, limit, Some(start), Some(end))
+        .get_klines(
+            symbol.as_ref(),
+            interval.as_ref(),
+            limit,
+            Some(start),
+            Some(end),
+        )
         .await?;
     let KlineSummaries::AllKlineSummaries(klines) = klines;
     Ok(klines)
