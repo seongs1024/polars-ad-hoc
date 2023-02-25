@@ -44,7 +44,7 @@ where
             let ts_builder =
                 TimestampBuilder::new(start.ok_or("no start time")?, end, interval.as_ref())?;
             let df = dataframe(
-                ts_builder.build().unwrap(),
+                ts_builder.build(),
                 symbol.as_ref(),
                 interval.as_ref(),
                 ts_builder.limit as u16,
@@ -62,7 +62,7 @@ where
         .to_string();
         let ts_builder = TimestampBuilder::new(start, end, interval.as_ref())?;
         let df = dataframe(
-            ts_builder.build().unwrap(),
+            ts_builder.build(),
             symbol.as_ref(),
             interval.as_ref(),
             ts_builder.limit as u16,
@@ -177,7 +177,7 @@ mod tests {
     #[test]
     fn df_ts_short() -> Result<(), Box<dyn std::error::Error>> {
         let ts = TimestampBuilder::new("2023-02-21 00:00", Some("2023-02-21 23:59"), "15m")?;
-        let df = dataframe(ts.build().unwrap(), "btcusdt", "15m", ts.limit as u16)?;
+        let df = dataframe(ts.build(), "btcusdt", "15m", ts.limit as u16)?;
         println!("{}", df);
         assert_eq!(df.height(), 96);
         Ok(())
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     fn df_ts_bound() -> Result<(), Box<dyn std::error::Error>> {
         let ts = TimestampBuilder::new("2023-02-21 00:00", Some("2023-02-22 00:00"), "15m")?;
-        let df = dataframe(ts.build().unwrap(), "btcusdt", "15m", ts.limit as u16)?;
+        let df = dataframe(ts.build(), "btcusdt", "15m", ts.limit as u16)?;
         println!("{}", df);
         assert_eq!(df.height(), 97);
         Ok(())
@@ -194,7 +194,7 @@ mod tests {
     #[test]
     fn df_ts_long() -> Result<(), Box<dyn std::error::Error>> {
         let ts = TimestampBuilder::new("2020-01-01 00:00", Some("2023-02-22 23:59"), "15m")?;
-        let df = dataframe(ts.build().unwrap(), "btcusdt", "15m", ts.limit as u16)?;
+        let df = dataframe(ts.build(), "btcusdt", "15m", ts.limit as u16)?;
         println!("{}", df);
         assert_eq!(df.height(), 110304);
         Ok(())

@@ -41,7 +41,7 @@ impl TimestampBuilder {
                 .timestamp_millis(),
             None => Utc::now().naive_utc().timestamp_millis(),
         };
-        if builder.start > builder.end {
+        if builder.start >= builder.end {
             return Err("start is later than end".into());
         }
         builder.interval = step.as_ref().into();
@@ -52,16 +52,13 @@ impl TimestampBuilder {
         Ok(builder)
     }
 
-    pub fn build(&self) -> Option<Vec<i64>> {
+    pub fn build(&self) -> Vec<i64> {
         let mut list: Vec<i64> = (self.start..self.end)
             .step_by((self.step * self.limit) as usize)
             // .map(|ts| NaiveDateTime::from_timestamp_millis(ts).unwrap())
             .collect();
-        if list.is_empty() {
-            return None;
-        };
         list.push(self.end);
-        Some(list)
+        list
     }
 }
 
@@ -70,17 +67,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ts_same_start_end() -> Result<(), Box<dyn std::error::Error>> {
-        let ts =
-            TimestampBuilder::new("2023-02-22 00:00", Some("2023-02-22 00:00"), "15m")?.build();
-        assert_eq!(ts, None);
-        Ok(())
+    #[should_panic]
+    fn ts_same_start_end() {
+        TimestampBuilder::new("2023-02-22 00:00", Some("2023-02-22 00:00"), "15m").unwrap();
     }
     #[test]
     fn ts_under_limit() -> Result<(), Box<dyn std::error::Error>> {
-        let ts = TimestampBuilder::new("2023-02-22 00:00", Some("2023-02-27 04:44"), "15m")?
-            .build()
-            .unwrap();
+        let ts =
+            TimestampBuilder::new("2023-02-22 00:00", Some("2023-02-27 04:44"), "15m")?.build();
         assert_eq!(ts.len(), 2);
         let ts: Vec<_> = ts.windows(2).collect();
         assert_eq!(ts.len(), 1);
@@ -88,9 +82,8 @@ mod tests {
     }
     #[test]
     fn ts_as_same_as_limit() -> Result<(), Box<dyn std::error::Error>> {
-        let ts = TimestampBuilder::new("2023-02-22 00:00", Some("2023-02-27 04:45"), "15m")?
-            .build()
-            .unwrap();
+        let ts =
+            TimestampBuilder::new("2023-02-22 00:00", Some("2023-02-27 04:45"), "15m")?.build();
         assert_eq!(ts.len(), 2);
         let ts: Vec<_> = ts.windows(2).collect();
         assert_eq!(ts.len(), 1);
@@ -98,9 +91,8 @@ mod tests {
     }
     #[test]
     fn ts_exceed_limit() -> Result<(), Box<dyn std::error::Error>> {
-        let ts = TimestampBuilder::new("2023-02-22 00:00", Some("2023-02-27 04:46"), "15m")?
-            .build()
-            .unwrap();
+        let ts =
+            TimestampBuilder::new("2023-02-22 00:00", Some("2023-02-27 04:46"), "15m")?.build();
         assert_eq!(ts.len(), 3);
         let ts: Vec<_> = ts.windows(2).collect();
         assert_eq!(ts.len(), 2);
@@ -120,9 +112,8 @@ mod tests {
     }
     #[test]
     fn ts_too_long_span() -> Result<(), Box<dyn std::error::Error>> {
-        let ts = TimestampBuilder::new("2020-01-01 00:00", Some("2023-03-01 00:00"), "15m")?
-            .build()
-            .unwrap();
+        let ts =
+            TimestampBuilder::new("2020-01-01 00:00", Some("2023-03-01 00:00"), "15m")?.build();
         assert_eq!(ts.len(), 224);
         let ts: Vec<_> = ts.windows(2).collect();
         assert_eq!(ts.len(), 223);
