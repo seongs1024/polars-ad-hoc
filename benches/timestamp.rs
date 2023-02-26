@@ -4,8 +4,7 @@ use polars_ad_hoc::chrono_range::TimestampBuilder;
 fn gen() {
     let ts = TimestampBuilder::new("2020-01-01 00:00", Some("2023-03-01 00:00"), "15m")
         .unwrap()
-        .build()
-        .unwrap();
+        .build();
     let _ts: Vec<_> = ts.windows(2).collect();
 }
 
