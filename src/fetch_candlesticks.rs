@@ -135,6 +135,7 @@ where
             col("openTime").cast(DataType::Datetime(TimeUnit::Milliseconds, None)),
             all().exclude(["openTime"]),
         ])
+        .sort("openTime", Default::default())
         .collect()?;
     Ok(df)
 }
