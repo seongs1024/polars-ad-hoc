@@ -15,7 +15,7 @@ where
 {
     type Output;
 
-    fn fetch_candlesticks(
+    pub fn fetch_candlesticks(
         self,
         symbol: S1,
         start: Option<S2>,
@@ -33,7 +33,7 @@ where
 {
     type Output = DataFrame;
 
-    fn fetch_candlesticks(
+    pub fn fetch_candlesticks(
         mut self,
         symbol: S1,
         start: Option<S2>,
