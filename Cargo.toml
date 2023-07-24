@@ -1,6 +1,6 @@
 [package]
 name = "polars-ad-hoc"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Seongsu Park <seongs1024@gmail.com>"]
 license = "MIT"
@@ -19,7 +19,7 @@ fetch-candlesticks = ["timestamp-builder", "chrono", "binance-rs-async", 'serde_
 timestamp-builder = ["chrono"]
 
 [dependencies]
-polars = { version = "0.27.2", default-features = false, features = ["json", "fmt", "lazy"] }
+polars = { version = "0.27.2", default-features = false, features = ["json", "fmt", "lazy", "parquet"] }
 
 chrono = { version = "0.4.23", default-features = false, features = ["clock"], optional = true }
 binance-rs-async = { version = "1.3.1", default-features = false, features = ["futures_api", "native-tls"], optional = true }
@@ -33,3 +33,11 @@ criterion = { version = "0.4.0", default-features = false}
 [[bench]]
 name = "timestamp"
 harness = false
+
+[lib]
+name = "fetch_candlesticks_traits"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fetcher"
+path = "src/bin.rs"
