@@ -1,0 +1,20 @@
+[package]
+name = "ts-builder"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
+description = """
+Timestamp builder
+"""
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+chrono = { version = "0.4.26", default-features = false, features = ["serde", "std", "clock"] }
+serde = { version = "1.0.180", default-features = false, features = ["derive", "std"] }
+serde_json = { version = "1.0.104", default-features = false, features = ["std"] }
