@@ -1,6 +1,6 @@
 [workspace]
-members = ["ts-builder"]
-default-members = ["ts-builder"]
+members = ["ts-builder", "cs-fetcher"]
+default-members = ["ts-builder", "cs-fetcher"]
 
 [workspace.package]
 name = "polars-ad-hoc"
@@ -15,6 +15,12 @@ Utilities for Polars
 """
 categories = ["data-structure"]
 keywords = ["polars", "dataframe"]
+
+[workspace.dependencies]
+chrono = { version = "0.4.26", default-features = false, features = ["serde", "std", "clock"] }
+serde = { version = "1.0.181", default-features = false, features = ["derive", "std"] }
+serde_json = { version = "1.0.104", default-features = false, features = ["std"] }
+
 
 #[features]
 #default = ["fetch-candlesticks"]
