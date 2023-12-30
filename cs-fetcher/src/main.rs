@@ -1,107 +1,79 @@
-use chrono::{DateTime, Duration, Utc, TimeZone};
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use chrono::{DateTime, Duration, TimeZone, Utc};
+use cs_fetcher::*;
+use polars::prelude::*;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::error::Error;
+use ts_builder::*;
 
-fn main() -> std::io::Result<()> {
-	let mut line = String::new();
+const GUIDE_STR1: &str = r#"
+cs-fetcher needs ts-builder's output!
+"#;
+const GUIDE_STR2: &str = r#"
+cs-fetcher needs an SYMBOL argument!
+"#;
 
-	std::io::stdin().read_line(&mut line)?;
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut line = String::new();
 
-	let timestamps: Timestamps = serde_json::from_str(&line).unwrap();
-	println!("{:?}", serde_json::to_string(&timestamps)?);
-	Ok(())
+    std::io::stdin().read_line(&mut line)?;
+    if line.trim().is_empty() {
+        println!("{}", GUIDE_STR1);
+        return Ok(());
+    };
+
+    let timestamps: Timestamps = serde_json::from_str(&line).unwrap();
+
+    // std::io::stdin().read_line(&mut line)?;
+    // if line.trim().is_empty() {
+    //     println!("{}", GUIDE_STR2);
+    //     return Ok(());
+    // };
+
+    let symbol = "btcusdt"; // line.trim();
+
+    let ts: Vec<i64> = timestamps
+        .datetimes
+        .iter()
+        .map(|dt| dt.timestamp_millis())
+        .collect();
+    let mut df = dataframe(
+        ts,
+        &symbol,
+        &timestamps.interval,
+        timestamps.batch_size as u16,
+    )?;
+
+    let fs = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(format!(
+            "{symbol}-perp-binance-{}-from-{}-to-{}.parquet",
+            timestamps.interval,
+            format!(
+                "{}",
+                timestamps
+                    .datetimes
+                    .first()
+                    .unwrap()
+                    .format("%Y-%m-%d-%H-%M")
+            ),
+            format!(
+                "{}",
+                timestamps
+                    .datetimes
+                    .last()
+                    .unwrap()
+                    .format("%Y-%m-%d-%H-%M")
+            )
+        ))?;
+    ParquetWriter::new(fs).finish(&mut df).unwrap();
+
+    Ok(())
 }
-
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct Timestamps {
-    // #[serde(with = "datetime_format", default = "default_start")]
-    datetimes: Vec<DateTime<Utc>>,
-    #[serde(with = "duration_format", default = "default_interval")]
-    interval: Duration,
-	#[serde(default = "default_limit")]
-    limit: usize,
-}
-
-const FORMAT: &'static str = "%Y-%m-%d %H:%M";
-
-fn default_start() -> DateTime<Utc> {
-    Utc.datetime_from_str("2019-09-13 04:00", FORMAT).unwrap()
-}
-
-fn default_end() -> DateTime<Utc> {
-    Utc::now()
-}
-
-fn default_interval() -> Duration {
-    Duration::milliseconds(900000)
-}
-
-fn default_limit() -> usize {
-    1
-}
-
-mod datetime_format {
-    use super::*;
-
-    pub fn serialize<S>(
-        datetime: &DateTime<Utc>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let s = format!("{}", datetime.format(FORMAT));
-        serializer.serialize_str(&s)
-    }
-
-    pub fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<DateTime<Utc>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        Utc.datetime_from_str(&s, FORMAT).map_err(serde::de::Error::custom)
-    }
-}
-
-mod duration_format {
-    use super::*;
-
-    pub fn serialize<S>(
-        duration: &Duration,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-		let s = match duration.num_minutes() {
-			1 => "1m",
-			5 => "5m",
-			15 => "15m",
-			60 => "1h",
-			240 => "4h",
-			1440 => "1d",
-			_ => unimplemented!("not implemented interval"),
-		};
-        serializer.serialize_str(&s)
-    }
-
-    pub fn deserialize<'de, D>(
-        deserializer: D,
-    ) -> Result<Duration, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        match s.as_str() {
-			"1m" => Ok(Duration::milliseconds(60000)),
-			"5m" => Ok(Duration::milliseconds(300000)),
-			"15m" => Ok(Duration::milliseconds(900000)),
-			"1h" => Ok(Duration::milliseconds(3600000)),
-			"4h" => Ok(Duration::milliseconds(14400000)),
-			"1d" => Ok(Duration::milliseconds(86400000)),
-			_ => Err(serde::de::Error::custom("unexpected time interval")),
-		}
-    }
+struct Timestamps {
+    pub datetimes: Vec<DateTime<Utc>>,
+    pub interval: String,
+    pub batch_size: usize,
 }
