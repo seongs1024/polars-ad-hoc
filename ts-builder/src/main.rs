@@ -4,7 +4,7 @@ const GUIDE_STR: &str = r#"
 ts_builder need an argument which is supposed to be deserialized to TimestampBuilder: 
     {}
 or 
-    {"start": "2019-09-13 04:00", "end": "2023-12-30 23:00", "interval": "15m", "batch_size": 1}
+    {"start": "2019-09-13 04:00:00Z", "end": "2023-12-30 23:59:59Z", "interval": "15m", "batch_size": 1}
 "#;
 
 fn main() -> std::io::Result<()> {
