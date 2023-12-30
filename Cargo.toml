@@ -1,6 +1,7 @@
 [workspace]
 members = ["ts-builder", "cs-fetcher"]
 default-members = ["ts-builder", "cs-fetcher"]
+resolver = "2"
 
 [workspace.package]
 name = "polars-ad-hoc"
