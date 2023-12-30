@@ -45,7 +45,7 @@ pub fn default_interval() -> Duration {
 }
 
 pub fn default_batch_size() -> usize {
-    1
+    499
 }
 
 pub mod duration_format {
