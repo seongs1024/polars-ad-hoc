@@ -20,6 +20,7 @@ fn main() -> std::io::Result<()> {
     let ts_builder: TimestampBuilder = serde_json::from_str(&line)?;
     let start_times: Vec<_> = DateTimeRange(ts_builder.start, ts_builder.end, ts_builder.interval)
         .step_by(ts_builder.batch_size)
+        .chain(std::iter::once(ts_builder.end))
         .collect();
     let datetimes = serde_json::to_string(&start_times)?;
     println!(
